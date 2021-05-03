@@ -1,2 +1,6 @@
 __pycache__/
 *.py[cod]
+
+radius.der
+wifipem_certificate_capture.pcap
+wpa_supplicant.conf
