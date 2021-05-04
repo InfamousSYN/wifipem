@@ -1,7 +1,12 @@
 # wifipem
+wifipem is an automated tool for extracting RADIUS public certificates from pcap files and live captures.
 
 ## Usage
+wifipem.py is capable of parsing Dot11 pcap captures which include RadioTap abstraction layer or captures without the layer, in addition the ability to conduct a live capture via an EAP-PEAP authentication attempt.
+
 ### Examples
+
+#### Extracting RADIUS public certificates from pcaps
 ```
 
 ```┌──(vagrant㉿vagrant-kali-rolling-amd64)-[~/wifipem]
@@ -92,6 +97,24 @@ qa2fXVEngD752hMj1MKdLBN8/kmMp3p04/YJDkDa5nRgP9eWnQFBStdp6Vkdpa18
 FT7kZEIyJeIadRE+0VZ/xg+h/NcmUjd9CEFepO8aqyCV2i+B2l7jj0PIf4B0yTPl
 cg==
 -----END CERTIFICATE-----
+                                                                                                                                                                                                                                             
+┌──(vagrant㉿vagrant-kali-rolling-amd64)-[~/wifipem]
+└─$
+```
+
+#### Extracting RADIUS public certificates from pcaps
+```
+┌──(vagrant㉿vagrant-kali-rolling-amd64)-[~/wifipem]
+└─$ sudo python3 wifipem.py -s rogue -i wlan1                                         
+[+] Creating wpa_supplicant.conf file
+[+] Performing a live extraction attempt of SSID: rogue
+WARNING: No route found for IPv6 destination :: (no default route?). This affects only IPv6
+WARNING: can't import layer ipsec: cannot import name 'gcd' from 'fractions' (/usr/lib/python3.9/fractions.py)
+[-]  Connecting to wireless network "rogue" using wpa_supplicant.conf file: wpa_supplicant.conf
+[-]  Capturing wireless handshake
+[-]  Writing captured wireless frames to file: wifipem_certificate_capture.pcap
+[-]  certificate frame found!
+[-]  extracting certificate to file: radius.der
                                                                                                                                                                                                                                              
 ┌──(vagrant㉿vagrant-kali-rolling-amd64)-[~/wifipem]
 └─$
