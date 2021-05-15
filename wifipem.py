@@ -61,18 +61,22 @@ def pcapExtraction(filename, output_file):
     import binascii
     packets = pyshark.FileCapture(filename)
     certificate = []
+    count = 1
     for pkt in packets:
         if(('EAP' in pkt)):
             if((int(pkt['EAP'].code) == 1) and (hasattr(pkt['EAP'], 'tls_handshake_certificate'))):
                 print('[-]  certificate frame found!')
                 hex_array = [pkt['EAP'].tls_handshake_certificate.raw_value[i:i+2] for i in range(0, len(pkt['EAP'].tls_handshake_certificate.raw_value), 2)]
-                print('[-]  extracting certificate to file: {}'.format(output_file))
-                with open(output_file, 'wb') as f:
+                file = '{}.{}'.format(output_file, count)
+                print('[-]  extracting certificate to file: {}'.format(file))
+                with open(file, 'wb') as f:
                     for ha in hex_array:
                         f.write(
                             binascii.unhexlify(ha)
                         )
                     f.close()
+                print('[-]  open file with the following command:\r\n[-]    openssl x509 -inform der -in {} -text'.format(file))
+                count += 1
     return 0
 
 def liveExtraction(interface, ssid, config, timeout):

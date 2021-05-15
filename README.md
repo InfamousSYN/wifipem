@@ -7,9 +7,9 @@ wifipem.py is capable of parsing Dot11 pcap captures which include RadioTap abst
 ### Examples
 
 #### Extracting RADIUS public certificates from pcaps
-```
 
-```┌──(vagrant㉿vagrant-kali-rolling-amd64)-[~/wifipem]
+```
+┌──(vagrant㉿vagrant-kali-rolling-amd64)-[~/wifipem]
 └─$ ls -lh                                         
 total 100K
 -rw-r--r-- 1 vagrant vagrant  166 May  2 10:27 README.md
@@ -17,13 +17,15 @@ total 100K
 -rw-r--r-- 1 vagrant vagrant 2.1K May  2 22:45 wifipem.py
                                                                                                                                                                                                                                              
 ┌──(vagrant㉿vagrant-kali-rolling-amd64)-[~/wifipem]
-└─$ python3 wifipem.py -f ../wpa2-enterprise\ handshake.pcap
-[+] Searching for RADIUS public certificate in file: ../wpa2-enterprise handshake.pcap
+└─$ python3 wifipem.py -f wifipem_certificate_capture.pcap
+[+] Searching for RADIUS public certificate in file: wifipem_certificate_capture.pcap
 [-]  certificate frame found!
-[-]  extracting certificate to file: radius.der
-                                                                                                                                                                                                                                             
+[-]  extracting certificate to file: radius.der.1
+[-]  open file with the following command:
+[-]    openssl x509 -inform der -in radius.der.1 -text
+                                                                                                                    
 ┌──(vagrant㉿vagrant-kali-rolling-amd64)-[~/wifipem]
-└─$ openssl x509 -inform der -in radius.der -text           
+└─$ openssl x509 -inform der -in radius.der.1 -text       
 Certificate:
     Data:
         Version: 3 (0x2)
@@ -97,7 +99,7 @@ qa2fXVEngD752hMj1MKdLBN8/kmMp3p04/YJDkDa5nRgP9eWnQFBStdp6Vkdpa18
 FT7kZEIyJeIadRE+0VZ/xg+h/NcmUjd9CEFepO8aqyCV2i+B2l7jj0PIf4B0yTPl
 cg==
 -----END CERTIFICATE-----
-                                                                                                                                                                                                                                             
+
 ┌──(vagrant㉿vagrant-kali-rolling-amd64)-[~/wifipem]
 └─$
 ```
@@ -114,7 +116,9 @@ WARNING: can't import layer ipsec: cannot import name 'gcd' from 'fractions' (/u
 [-]  Capturing wireless handshake
 [-]  Writing captured wireless frames to file: wifipem_certificate_capture.pcap
 [-]  certificate frame found!
-[-]  extracting certificate to file: radius.der
+[-]  extracting certificate to file: radius.der.1
+[-]  open file with the following command:
+[-]    openssl x509 -inform der -in radius.der.1 -text
                                                                                                                                                                                                                                              
 ┌──(vagrant㉿vagrant-kali-rolling-amd64)-[~/wifipem]
 └─$
@@ -129,5 +133,7 @@ WARNING: can't import layer ipsec: cannot import name 'gcd' from 'fractions' (/u
 `python3 -m pip install pyshark`
 
 #### tshark
-`sudo apt update
-sudo apt install tshark`
+```
+sudo apt update
+sudo apt install tshark
+```
