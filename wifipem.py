@@ -22,7 +22,7 @@ sourceOptions.add_argument('-f', '--filename', dest='filename', help='extract .p
 sourceOptions.add_argument('-i', '--interface', dest='interface', help='set interface to use')
 
 liveExtractionOptions = parser.add_argument_group(description='Control settings for live extraction')
-liveExtractionOptions.add_argument('-t', '--timeout', dest='timeout', default=default_timeout, help='specify the timeout for live capture window (Default: {})'.format(default_timeout))
+liveExtractionOptions.add_argument('-t', '--timeout', dest='timeout', type=int, default=default_timeout, help='specify the timeout for live capture window (Default: {})'.format(default_timeout))
 liveExtractionOptions.add_argument('--identity', dest='identity', default=default_identity, help='specify the user identity to connect with (Default: {})'.format(default_identity))
 liveExtractionOptions.add_argument('--password', dest='password', default=default_password, help='specify the user password to connect with (Default: {})'.format(default_password))
 liveExtractionOptions.add_argument('-p', '--pcap-outfile', dest='pcap_outfile', default=pcap_outfile_location, help='specify the output location of the live capture (Default: {})'.format(pcap_outfile_location))
