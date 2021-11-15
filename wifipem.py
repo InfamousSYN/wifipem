@@ -27,6 +27,7 @@ liveExtractionOptions.add_argument('-t', '--timeout', dest='timeout', type=int, 
 liveExtractionOptions.add_argument('--identity', dest='identity', default=default_identity, help='specify the user identity to connect with (Default: {})'.format(default_identity))
 liveExtractionOptions.add_argument('--password', dest='password', default=default_password, help='specify the user password to connect with (Default: {})'.format(default_password))
 liveExtractionOptions.add_argument('-p', '--pcap-outfile', dest='pcap_outfile', default=pcap_outfile_location, help='specify the output location of the live capture (Default: {})'.format(pcap_outfile_location))
+liveExtractionOptions.add_argument('--hidden', dest='hidden', type=int, default=0, choices=[0,1], help='Toggle for hidden network detection. Default: 0')
 
 args, leftover = parser.parse_known_args()
 options = args.__dict__
@@ -37,6 +38,7 @@ class wpa_supplicant_without_bssid_conf(object):
     ctrl_interface=/var/run/wpa_supplicant
         network={{
         ssid="{}"
+        scan_ssid={}
         key_mgmt=WPA-EAP
         eap=PEAP
         identity="{}"
@@ -44,11 +46,12 @@ class wpa_supplicant_without_bssid_conf(object):
     }}
     '''
     @classmethod
-    def configure(cls, ssid, identity, password):
+    def configure(cls, ssid, hidden, identity, password):
         try:
             with open(cls.path, 'w') as fd:
                 fd.write(cls.template.format(
                         ssid,
+                        hidden,
                         identity,
                         password
                     ))
@@ -63,6 +66,7 @@ class wpa_supplicant_with_bssid_conf(object):
     ctrl_interface=/var/run/wpa_supplicant
         network={{
         ssid="{}"
+        scan_ssid={}
         bssid={}
         key_mgmt=WPA-EAP
         eap=PEAP
@@ -71,11 +75,12 @@ class wpa_supplicant_with_bssid_conf(object):
     }}
     '''
     @classmethod
-    def configure(cls, ssid, bssid, identity, password):
+    def configure(cls, ssid, hidden, bssid, identity, password):
         try:
             with open(cls.path, 'w') as fd:
                 fd.write(cls.template.format(
                         ssid,
+                        hidden,
                         bssid,
                         identity,
                         password
@@ -161,6 +166,7 @@ if __name__ == '__main__':
                 print('[+] Creating wpa_supplicant.conf file')
                 wpa_supplicant_with_bssid_conf.configure(
                     ssid=options['ssid'],
+                    hidden=options['hidden'],
                     bssid=bssid,
                     identity=options['identity'],
                     password=options['password']
@@ -189,6 +195,7 @@ if __name__ == '__main__':
             print('[+] Creating wpa_supplicant.conf file')
             wpa_supplicant_without_bssid_conf.configure(
                 ssid=options['ssid'],
+                hidden=options['hidden'],
                 identity=options['identity'],
                 password=options['password']
             )
