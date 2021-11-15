@@ -27,7 +27,7 @@ liveExtractionOptions.add_argument('-t', '--timeout', dest='timeout', type=int, 
 liveExtractionOptions.add_argument('--identity', dest='identity', default=default_identity, help='specify the user identity to connect with (Default: {})'.format(default_identity))
 liveExtractionOptions.add_argument('--password', dest='password', default=default_password, help='specify the user password to connect with (Default: {})'.format(default_password))
 liveExtractionOptions.add_argument('-p', '--pcap-outfile', dest='pcap_outfile', default=pcap_outfile_location, help='specify the output location of the live capture (Default: {})'.format(pcap_outfile_location))
-liveExtractionOptions.add_argument('--hidden', dest='hidden', type=int, default=0, choices=[0,1], help='Toggle for hidden network detection. Default: 0')
+liveExtractionOptions.add_argument('--hidden', dest='hidden', action='store_true', default=False, help='Toggle for hidden network detection. Default: False')
 
 args, leftover = parser.parse_known_args()
 options = args.__dict__
@@ -152,6 +152,8 @@ if __name__ == '__main__':
             ssid=options['ssid'],
             output_file=options['output_file']
         )
+    options['hidden'] = 1 if options['hidden'] else 0
+
     if(options['bssid_file'] is not None):
         bssids = []
         with open(options['bssid_file'], 'r') as file:
