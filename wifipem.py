@@ -473,6 +473,17 @@ class wifipemClass(object):
             print('[-]\t\'{}\' Sending \'Client Hello\''.format(self.target_bssid))
             dst=bssid=self.target_bssid
 
+            signature_algorithms=[
+                0x0403,
+                0x0804,
+                0x0401,
+                0x0503,
+                0x0805,
+                0x0501,
+                0x0806,
+                0x0601,
+                0x0201,
+            ]
             tls_layer = TLS(
                 #version=771, # 0x0303 = TLS 1.2
                 #version=770, # 0x0302 = TLS 1.1
@@ -504,9 +515,9 @@ class wifipemClass(object):
                         ext=[
                             TLS_Ext_ExtendedMasterSecret(),
                             TLS_Ext_RenegotiationInfo(),
-                            TLS_Ext_SupportedGroups(),
+                            TLS_Ext_SupportedGroups(type=10, groups=[0x001d,0x0017,0x0018]),
                             TLS_Ext_SupportedPointFormat(),
-                            TLS_Ext_SignatureAlgorithms(),
+                            TLS_Ext_SignatureAlgorithms(type=13, sig_algs=signature_algorithms),
                             #TLS_Ext_SupportedVersions(len=2),
                             #TLS_Ext_SupportedEllipticCurves(),
                             #TLSChangeCipherSpec(),
