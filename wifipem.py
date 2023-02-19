@@ -79,6 +79,7 @@ class wifipemClass(object):
         self.senderAddress=self.getSenderAddress(interface=self.interface)
 
         # Packet Memory
+        self.RadioTap_layer = RadioTap()
         self.probeResponsePacket = None
         self.authenticationRespPacket = None
         self.associationResponsePacket = None
@@ -219,6 +220,20 @@ class wifipemClass(object):
         if( (packet.haslayer(Dot11ProbeResp)) and (packet.info.decode('utf-8') == self.ssid) and (packet.addr1 == self.senderAddress) ):
             self.probeResponsePacket = packet
             self.target_bssid = packet.addr3
+
+            self.RadioTap_layer = RadioTap(
+                    #pad=packet.getlayer(RadioTap).pad,
+                    #version=packet.getlayer(RadioTap).version,
+                    #len=packet.getlayer(RadioTap).len,
+                    #present=packet.getlayer(RadioTap).present,
+                    #Flags=packet.getlayer(RadioTap).Flags,
+                    #Rate=packet.getlayer(RadioTap).Rate,
+                    #ChannelFrequency=packet.getlayer(RadioTap).ChannelFrequency,
+                    #ChannelFlags=packet.getlayer(RadioTap).ChannelFlags,
+                    #dBm_AntSignal=packet.getlayer(RadioTap).dBm_AntSignal,
+                    #RXFlags=packet.getlayer(RadioTap).RXFlags
+                    )
+
             return packet
         return None
 
@@ -226,10 +241,12 @@ class wifipemClass(object):
     def parserProbeResponse(self, packet=None):
         if(self.verbose):
             print("[-]\tParsing the Probe response")
+
         self.real_capability = int(self.probeResponsePacket.getlayer(Dot11ProbeResp).cap)
         self.real_bssid = (self.probeResponsePacket.getlayer(Dot11).addr3)
         packet = self.probeResponsePacket
         self.packet_probe_response_dot11elt_layer = packet.getlayer(Dot11Elt)
+
 
     @classmethod
     def findAuthenticationResponse(self, packet=None):
@@ -319,7 +336,7 @@ class wifipemClass(object):
                 dst.lower()
             ))
 
-            packet = RadioTap()/Dot11(type=0, subtype=4, addr1=dst, addr2=self.senderAddress, addr3=bssid)/Dot11ProbeReq()/Dot11Elt(ID='SSID', info=self.ssid, len=len(self.ssid))/Dot11EltRates()
+            packet = self.RadioTap_layer/Dot11(type=0, subtype=4, addr1=dst, addr2=self.senderAddress, addr3=bssid)/Dot11ProbeReq()/Dot11Elt(ID='SSID', info=self.ssid, len=len(self.ssid))/Dot11EltRates()
             packet.timestamp = self.currentTime(boottime)
             t = threading.Thread(target=self.sniffThread, daemon=True)
             t.start()
@@ -356,7 +373,7 @@ class wifipemClass(object):
                 dst.lower()
             ))
 
-            packet = RadioTap()/Dot11(addr1=dst, addr2=self.senderAddress, addr3=bssid)/Dot11Auth(algo=0, seqnum=0x0001, status=0x0000)
+            packet = self.RadioTap_layer/Dot11(addr1=dst, addr2=self.senderAddress, addr3=bssid)/Dot11Auth(algo=0, seqnum=0x0001, status=0x0000)
             packet.timestamp = self.currentTime(boottime)
             t = threading.Thread(target=self.sniffThread, daemon=True)
             t.start()
@@ -393,7 +410,7 @@ class wifipemClass(object):
                 dst.lower()
             ))
 
-            packet = RadioTap()/Dot11(addr1=dst, addr2=self.senderAddress, addr3=bssid)/Dot11AssoReq(cap=self.real_capability, listen_interval=0x0001)/self.packet_probe_response_dot11elt_layer
+            packet = self.RadioTap_layer/Dot11(addr1=dst, addr2=self.senderAddress, addr3=bssid)/Dot11AssoReq(cap=self.real_capability, listen_interval=0x0001)/self.packet_probe_response_dot11elt_layer
             packet.timestamp = self.currentTime(boottime)
             t = threading.Thread(target=self.sniffThread, daemon=True)
             t.start()
@@ -419,6 +436,8 @@ class wifipemClass(object):
         if( (packet.haslayer(EAP)) and (packet.code == 1) and (packet.addr3 == self.target_bssid.lower()) and (packet.addr1 == self.senderAddress.lower()) ):
             print('[-]\tEAP Identity Request: Identity request detected!')
             self.state_machine_state == 'sending_eap_identity_response'
+            return packet
+        return None
 
     @classmethod
     def ParserEapRequest(self, packet=None):
@@ -451,83 +470,59 @@ class wifipemClass(object):
             print('[-]\tBSSID \'{}\' is attempting to negotiate EAP method: {}'.format(self.target_bssid, packet.type))
             
             print('[-]\t\'{}\' Certifcate extraction commencing...'.format(self.target_bssid))
+            print('[-]\t\'{}\' Sending \'Client Hello\''.format(self.target_bssid))
             dst=bssid=self.target_bssid
 
-            # list of supported cipher suites
-            cipher_suites = [
-            0xc02b,  # TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
-            0xc02f,  # TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
-            0xc02c,  # TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
-            0xc030,  # TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-            0xcca8,  # TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256
-            0xcca9,  # TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256
-            0xc009,  # TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA
-            0xc013,  # TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
-            0xc00a,  # TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA
-            0xc014,  # TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
-            0x009c,  # TLS_RSA_WITH_AES_128_GCM_SHA256
-            0x9d,    # TLS_RSA_WITH_AES_256_GCM_SHA384
-            0x002f,  # TLS_RSA_WITH_AES_128_CBC_SHA
-            0x0035,  # TLS_RSA_WITH_AES_256_CBC_SHA
-            0x000a,  # TLS_RSA_WITH_3DES_EDE_CBC_SHA
-            ]
+            tls_layer = TLS(
+                #version=771, # 0x0303 = TLS 1.2
+                #version=770, # 0x0302 = TLS 1.1
+                version=769, # 0x0301 = TLS 1.0
+                msg=[
+                    TLSClientHello(
+                        #version=771, # 0x0303 = TLS 1.2
+                        #version=770, # 0x0302 = TLS 1.1
+                        version=769, # 0x0301 = TLS 1.0
+                        sid=bytes.fromhex("1EC02BC02FC02CC030CCA9CCA8C009C013C00AC014009C009D002F003500"),
+                        ciphers=[
+                            0xc02b,  # TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+                            0xc02f,  # TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+                            0xc02c,  # TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+                            0xc030,  # TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+                            0xcca8,  # TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256
+                            0xcca9,  # TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256
+                            0xc009,  # TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA
+                            0xc013,  # TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+                            0xc00a,  # TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA
+                            0xc014,  # TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
+                            0x009c,  # TLS_RSA_WITH_AES_128_GCM_SHA256
+                            0x9d,    # TLS_RSA_WITH_AES_256_GCM_SHA384
+                            0x002f,  # TLS_RSA_WITH_AES_128_CBC_SHA
+                            0x0035,  # TLS_RSA_WITH_AES_256_CBC_SHA
+                            0x000a,  # TLS_RSA_WITH_3DES_EDE_CBC_SHA
+                        ],
+                        comp=[0],
+                        ext=[
+                            TLS_Ext_ExtendedMasterSecret(),
+                            TLS_Ext_RenegotiationInfo(),
+                            TLS_Ext_SupportedGroups(),
+                            TLS_Ext_SupportedPointFormat(),
+                            TLS_Ext_SignatureAlgorithms(),
+                            #TLS_Ext_SupportedVersions(len=2),
+                            #TLS_Ext_SupportedEllipticCurves(),
+                            #TLSChangeCipherSpec(),
+                        ])
+            ])
 
-            client_hello_layer = TLS(
-                type=22,  # TLS Handshake
-                msg=TLSClientHello(
-                    version=771,
-                    sid=bytes.fromhex("1EC02BC02FC02CC030CCA9CCA8C009C013C00AC014009C009D002F003500"),
-                    ciphers=[
-                        0xc02b,  # TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
-                        0xc02f,  # TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
-                        0xc02c,  # TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
-                        0xc030,  # TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-                        0xcca8,  # TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256
-                        0xcca9,  # TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256
-                        0xc009,  # TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA
-                        0xc013,  # TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
-                        0xc00a,  # TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA
-                        0xc014,  # TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
-                        0x009c,  # TLS_RSA_WITH_AES_128_GCM_SHA256
-                        0x9d,    # TLS_RSA_WITH_AES_256_GCM_SHA384
-                        0x002f,  # TLS_RSA_WITH_AES_128_CBC_SHA
-                        0x0035,  # TLS_RSA_WITH_AES_256_CBC_SHA
-                        0x000a,  # TLS_RSA_WITH_3DES_EDE_CBC_SHA
-                    ],
-                    comp=[0],
-                    ext=[
-                        TLS_Ext_SupportedGroups(),
-                        TLS_Ext_SupportedVersions(),
-                        TLS_Ext_SupportedEllipticCurves()
-                    ])
-                )
-
-            tls_layer = TLS(version=771)
-            peap_layer = EAP_PEAP(code=2, id=14, L=1, M=0, S=0, reserved=0, version=0, type=25, tls_message_len=len(tls_layer/client_hello_layer), tls_data=tls_layer/client_hello_layer)
+            peap_layer = EAP_PEAP(code=2, id=14, len=None, L=1, M=0, S=0, reserved=0, version=0, type=25 ,tls_message_len=len(tls_layer))
+            peap_layer = EAP_PEAP(code=2, id=14, L=1, M=0, S=0, reserved=0, version=0, type=25, len=len(peap_layer)+len(tls_layer), tls_message_len=len(tls_layer))/tls_layer
             eapol_layer = EAPOL(version=1, type=self.eap_eapol_type, len=len(peap_layer))
             llc_layer = LLC(dsap=self.eap_llc_dsap, ssap=self.eap_llc_ssap, ctrl=self.eap_llc_crtl)/SNAP(code=self.eap_snap_code, OUI=0x0)
             dot11_layer = Dot11FCS(
                 subtype=8, type=2, addr1=dst, addr2=self.senderAddress, addr3=bssid, proto=0, FCfield='to-DS', ID=1337, fcs=0xf146cc6a, SC=16
                 )/Dot11QoS(A_MSDU_Present=0, Ack_Policy=0, EOSP=0, TID=6, TXOP=0)
 
-
-
             #need to send the client hello of a tls handshake
-            eapChallengeResponse = RadioTap(
-                pad=packet.getlayer(RadioTap).pad,
-                version=packet.getlayer(RadioTap).version,
-                len=packet.getlayer(RadioTap).len,
-                present=packet.getlayer(RadioTap).present,
-                Flags=packet.getlayer(RadioTap).Flags,
-                Rate=packet.getlayer(RadioTap).Rate,
-                ChannelFrequency=packet.getlayer(RadioTap).ChannelFrequency,
-                ChannelFlags=packet.getlayer(RadioTap).ChannelFlags,
-                dBm_AntSignal=packet.getlayer(RadioTap).dBm_AntSignal,
-                RXFlags=packet.getlayer(RadioTap).RXFlags
-                )/dot11_layer/llc_layer/eapol_layer/peap_layer
-            
-            
-            print(eapChallengeResponse.show)
+            eapChallengeResponse = self.RadioTap_layer/dot11_layer/llc_layer/eapol_layer/peap_layer
 
             self.state_machine_state == 'sending_eap_method_negotiation_response'
             t = threading.Thread(target=self.sniffThread, daemon=True)
@@ -554,7 +549,7 @@ class wifipemClass(object):
             else:
                 print('[-]\t\'{}\' sent EAP Challenge Type: {}'.format(self.target_bssid, packet.getlayer(EAP).type))
                 print('[-]\tForcing PEAP challenge handshake to BSSID: {}'.format(self.target_bssid))
-                eapChallengeResponse = RadioTap()/Dot11FCS(addr1=dst, addr2=self.senderAddress, addr3=bssid)/LLC(dsap=self.eap_llc_dsap, ssap=self.eap_llc_ssap, ctrl=self.eap_llc_crtl)/SNAP(code=self.eap_snap_code)/EAPOL(version=self.eap_eapol_version, type=self.eap_eapol_type)/EAP(code=2, id=packet.getlayer(EAP).id, type=3, desired_auth_types=25)
+                eapChallengeResponse = self.RadioTap_layer/Dot11FCS(addr1=dst, addr2=self.senderAddress, addr3=bssid)/LLC(dsap=self.eap_llc_dsap, ssap=self.eap_llc_ssap, ctrl=self.eap_llc_crtl)/SNAP(code=self.eap_snap_code)/EAPOL(version=self.eap_eapol_version, type=self.eap_eapol_type)/EAP(code=2, id=packet.getlayer(EAP).id, type=3, desired_auth_types=25)
                 t = threading.Thread(target=self.sniffThread, args=(self.monitor if self.monitor is not None else self.interface, lambda x: x.haslayer(Dot11), self.findEAPResponse, self.timeout), daemon=True)
                 t.start()
                 time.sleep(self.pause)
@@ -575,9 +570,26 @@ class wifipemClass(object):
         else:
             print('[-]\tConnected to BSSID \'{}\', starting EAP handshake'.format(self.target_bssid))
 
-            self.ParserEapRequest(packet=self.eapIdentityPacket)
+            # Sending EAPOL Start
+            #print('[-]\tSending EAPOL Start to \'{}\''.format(self.target_bssid, self.eap_identity))
+#            dst=bssid=self.target_bssid
+#            self.ParserEapRequest(packet=self.eapIdentityPacket)
+#            self.eapIdentityPacket = None
+#            eapEapolStart = RadioTap() / Dot11FCS(
+                #subtype=8, type=2, addr1=dst, addr2=self.senderAddress, addr3=bssid, proto=0, FCfield='to-DS', ID=1337, fcs=0xf146cc6a, SC=16
+                #)/Dot11QoS(A_MSDU_Present=0, Ack_Policy=0, EOSP=0, TID=6, TXOP=0) / LLC(dsap=self.eap_llc_dsap, ssap=self.eap_llc_ssap, ctrl=self.eap_llc_crtl)/SNAP(code=self.eap_snap_code, OUI=0x0) / EAPOL(type=1)
+#            self.state_machine_state = 'listen_for_eap_identity_request'
+#            t = threading.Thread(target=self.sniffThread, daemon=True)
+#            t.start()
+#            time.sleep(self.pause)
+            #self.sendFrame(pkt=eapEapolStart, interface=self.interface, verbose=self.verbose, count=1)
+#            t.join()
+
+
+            # Sending Identity Response
             dst=bssid=self.target_bssid
-            eapIdentityResponse = RadioTap()/Dot11(addr1=dst, addr2=self.senderAddress, addr3=bssid)/LLC(dsap=self.eap_llc_dsap, ssap=self.eap_llc_ssap, ctrl=self.eap_llc_crtl)/SNAP(code=self.eap_snap_code)/EAPOL(version=self.eap_eapol_version, type=self.eap_eapol_type)/EAP( code=2, id=self.eapIdentityPacket.getlayer(EAP).id, type=1, identity=self.eap_identity)
+            self.ParserEapRequest(packet=self.eapIdentityPacket)
+            eapIdentityResponse = self.RadioTap_layer/Dot11(addr1=dst, addr2=self.senderAddress, addr3=bssid)/LLC(dsap=self.eap_llc_dsap, ssap=self.eap_llc_ssap, ctrl=self.eap_llc_crtl)/SNAP(code=self.eap_snap_code)/EAPOL(version=self.eap_eapol_version, type=self.eap_eapol_type)/EAP( code=2, id=self.eapIdentityPacket.getlayer(EAP).id, type=1, identity=self.eap_identity)
             
             print('[-]\tSending EAP Response to \'{}\' with identity \'{}\''.format(self.target_bssid, self.eap_identity))
             self.state_machine_state = 'sent_eap_identity_response'
@@ -594,7 +606,7 @@ class wifipemClass(object):
         boottime=time.time()
         dst=bssid=self.target_bssid
         print('[-]\t802.11 Frame Crafting: Deauthentication\r\n\t\tssid: {}\r\n\t\tSTA: {}\r\n\t\tBSSID: {}\r\n\t\tDST: {}'.format(self.ssid, self.senderAddress.lower(), bssid.lower(), dst.lower()))
-        packet = RadioTap()/Dot11(addr1=dst, addr2=self.senderAddress, addr3=bssid)/Dot11Deauth(reason=7)
+        packet = self.RadioTap_layer/Dot11(addr1=dst, addr2=self.senderAddress, addr3=bssid)/Dot11Deauth(reason=7)
         packet.timestamp = self.currentTime(boottime)
         self.sendFrame(pkt=packet, interface=self.interface, verbose=self.verbose, count=1)
         return 0
