@@ -24,6 +24,7 @@ sourceMode.add_argument('-m', choices=[0,1], dest='mode', type=int, help='0 = li
 
 liveCaptureOptions = parser.add_argument_group(description='Specify targeting information for live extration. Used when -m 0 source mode is chosen')
 liveCaptureOptions.add_argument('-i', '--interface', dest='interface', help='set interface to use')
+liveCaptureOptions.add_argument('-c', '--channel', dest='channel', help='set interface channel to use')
 liveCaptureOptions.add_argument('-sl', dest='ssid', help='select target SSID')
 liveCaptureOptions.add_argument('-bl', dest='bssid', nargs='+', default=[], help='select BSSID')
 liveCaptureOptions.add_argument('-bL', dest='bssid_file', default=None, help='provide file containing BSSIDs')
@@ -55,7 +56,7 @@ class Dot11EltRates(Packet):
 
 class wifipemClass(object):
     @classmethod
-    def __init__(self, retry, pause, ssid, bssids, interface, monitor, monitor_status, scan_enable, timeout, verbose, eap_identity, default_eap_type):
+    def __init__(self, retry, pause, ssid, bssids, interface, channel, monitor, monitor_status, scan_enable, timeout, verbose, eap_identity, default_eap_type):
 
         # Settings
         self.revert_interface_state = False
@@ -77,6 +78,7 @@ class wifipemClass(object):
         self.monitor=monitor
         self.monitor_status=monitor_status
         self.senderAddress=self.getSenderAddress(interface=self.interface)
+        self.channel = channel
 
         # Packet Memory
         self.RadioTap_layer = RadioTap()
@@ -136,6 +138,12 @@ class wifipemClass(object):
     def ifaceManaged(interface):
         import os
         os.system('iwconfig {} mode managed'.format(interface))
+        return
+
+    @staticmethod
+    def ifaceChannel(interface, channel):
+        import os
+        os.system('iwconfig {} channel {}'.format(interface, channel))
         return
 
     @staticmethod
@@ -214,6 +222,12 @@ class wifipemClass(object):
     def check_interface_operational_mode(self, interface, keyword='Monitor'):
         res = self.testIfaceOpMode(interface=interface)
         return True if 'Mode:{}'.format(keyword) in res else False
+
+    @classmethod
+    def set_interface_channel(self, interface, channel):
+        if(self.verbose):
+            print('[-]\tInterface Channel: changing \'{}\' channel to \'{}\''.format(interface, channel))
+        self.ifaceChannel(interface=interface, channel=channel)
 
     @classmethod
     def findProbeResponse(self, packet=None):
@@ -633,6 +647,8 @@ class wifipemClass(object):
             if(not self.check_interface_operational_mode(interface=self.interface, keyword='Monitor')):
                 self.set_interface_monitor(interface=self.interface)
 
+            self.set_interface_channel(interface=self.interface, channel=self.channel)
+
             print('[-]\tAttempting to extract the certificate for each BSSID in BSSID queue')
             if(self.verbose):
                 print('[-]\tBSSID pool:\r\n[-]\t\t{}'.format(self.bssids))
@@ -727,6 +743,7 @@ if __name__ == '__main__':
                 ssid=options['ssid'],
                 bssids=bssidList,
                 interface=options['interface'],
+                channel=options['channel'],
                 monitor=options['monitor'],
                 monitor_status=options['monitor_status'],
                 timeout=options['timeout'],
