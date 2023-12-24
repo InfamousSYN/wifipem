@@ -1,12 +1,83 @@
 # wifipem
 wifipem is an automated tool for extracting RADIUS public certificates from pcap files and live captures.
 
+
+## Installation
+
+```
+sudo git clone https://github.com/InfamousSYN/wifipem
+sudo python3 -m pip install -r requirements.txt
+```
+
+---
+
 ## Usage
 wifipem.py is capable of parsing Dot11 pcap captures which include RadioTap abstraction layer or captures without the layer, in addition the ability to conduct a live capture via an EAP-PEAP authentication attempt.
 
-### Examples
+```                              
+usage: wifipem.py [-h] [-o OUTPUT_FILE] [-t TIMEOUT] [--verbose] [--scan] [-r RETRY] [-d PAUSE] [--version] -m {0,1} [-s SSID] [-b BSSID [BSSID ...]] [-i INTERFACE] [-c CHANNEL] [-bL BSSID_FILE]
 
-#### Extracting RADIUS public certificates from pcaps
+Automated tool for extract the public key presented by WPA2-Enterprise wireless networks
+
+options:
+  -h, --help            show this help message and exit
+  -o OUTPUT_FILE, --output OUTPUT_FILE
+  -t TIMEOUT, --timeout TIMEOUT
+  --verbose             enable verbosity
+  --scan                Scan for WLAN
+  -r RETRY, --retry RETRY
+                        Control number of retry attempts at transmission and detection
+  -d PAUSE, --delay PAUSE
+                        Control pause between starting sniffer thread and sending frame
+  --version             show program's version number and exit
+
+  Specify source for targeting information
+
+  -m {0,1}              0 = live, 1 = pcap
+
+  Specify targeting information
+
+  -s SSID               select target SSID
+  -b BSSID [BSSID ...]  select BSSID
+
+  Specify targeting information for live extration. Used when -m 0 source mode is chosen
+
+  -i INTERFACE, --interface INTERFACE
+                        set interface to use
+  -c CHANNEL, --channel CHANNEL
+                        set interface channel to use
+  -bL BSSID_FILE        provide file containing BSSIDs
+ 
+```
+
+---
+
+## Examples
+
+### Extracting certificates from pcaps
+
+```bash
+
+
+```
+
+### Extracting certificates from pcaps
+
+```bash
+
+
+```
+
+
+
+
+
+
+
+-- old 
+
+
+### Extracting RADIUS public certificates from pcaps
 
 ```
 ┌──(vagrant㉿vagrant-kali-rolling-amd64)-[~/wifipem]
@@ -104,7 +175,7 @@ cg==
 └─$
 ```
 
-#### Extracting RADIUS public certificates from pcaps
+### Extracting RADIUS public certificates from pcaps
 ```
 ┌──(vagrant㉿vagrant-kali-rolling-amd64)-[~/wifipem]
 └─$ sudo python3 wifipem.py -s rogue -i wlan1                                         
@@ -122,18 +193,4 @@ WARNING: can't import layer ipsec: cannot import name 'gcd' from 'fractions' (/u
                                                                                                                                                                                                                                              
 ┌──(vagrant㉿vagrant-kali-rolling-amd64)-[~/wifipem]
 └─$
-```
-
-## Dependencies
-1. `pyshark`
-2. `tshark`
-
-### Install
-#### pyshark
-`python3 -m pip install pyshark`
-
-#### tshark
-```
-sudo apt update
-sudo apt install tshark
 ```
