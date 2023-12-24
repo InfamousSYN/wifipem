@@ -46,15 +46,14 @@ options = args.__dict__
 class wpa_supplicant_without_bssid_conf(object):
     path = wpa_supplicant_conf_file
     template = '''
-    ctrl_interface=/var/run/wpa_supplicant
-        network={{
-        ssid="{}"
-        scan_ssid={}
-        key_mgmt=WPA-EAP
-        eap=PEAP
-        identity="{}"
-        password="{}"
-    }}
+ctrl_interface=/var/run/wpa_supplicant
+network={{
+    ssid="{}"
+    key_mgmt=WPA-EAP
+    eap=PEAP
+    identity="{}"
+    password="{}"
+}}
     '''
     @classmethod
     def configure(cls, ssid, hidden, identity, password):
@@ -106,8 +105,9 @@ def liveExtraction(interface, ssid, config, timeout):
 
     command = [
         'wpa_supplicant',
-        '-i{}'.format(interface),
-        '-c{}'.format(config)
+        '-i {}'.format(interface),
+        '-c{}'.format(config),
+        '-v'
     ]
     start = datetime.datetime.now()
 
@@ -119,6 +119,8 @@ def liveExtraction(interface, ssid, config, timeout):
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
         )
+        out,err = ps.communicate()
+        print(out)
         while(ps.poll() is None):
             time.sleep(0.1)
             now = datetime.datetime.now()
@@ -244,9 +246,10 @@ class wifipemClass(object):
         return True if 'Mode:{}'.format(keyword) in res else False
 
     @classmethod
-    def __init__(self,ssid=None,interface=None,mode=None,pcap_filename=None,verbose=False):
+    def __init__(self,ssid=None,interface=None,timeout=None,mode=None,pcap_filename=None,verbose=False):
         self.ssid=ssid
         self.interface=interface
+        self.timeout=timeout
         self.mode=mode
         self.verbose=verbose
         self.hidden=None
@@ -264,9 +267,6 @@ class wifipemClass(object):
         import threading
         import time
         try:
-            t = threading.Thread(target=None, daemon=True)
-            t.start()
-            time.sleep(3)
             print('[-] Creating wpa_supplicant.conf file')
             if(self.bssid is not None):
                 wpa_supplicant_with_bssid_conf.configure(
@@ -283,6 +283,9 @@ class wifipemClass(object):
                     identity=self.identity,
                     password=self.password
                 )
+            t = threading.Thread(target=liveExtraction, kwargs={'interface':self.interface,'ssid':self.ssid, 'config':wpa_supplicant_conf_file, 'timeout':self.timeout}, daemon=True)
+            t.start()
+            time.sleep(3)
             t.join()
         except Exception as e:
             print(e)
@@ -353,6 +356,7 @@ if __name__ == '__main__':
             verbose=options['verbose'],
             ssid=options['ssid'],
             interface=options['interface'],
+            timeout=options['timeout'],
             mode='live'
         ).__Operator__()
         
